@@ -1,4 +1,3 @@
-This project
 #! /bin/sh
 
 
