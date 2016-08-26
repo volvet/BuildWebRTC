@@ -1,9 +1,203 @@
+This project
+
+Search
+ 2
+alpha / webrtc · Files
+GitLab
+ Go to group
+ Project
+ Activity
+ Files
+ Commits
+ Pipelines 0
+ Builds 0
+ Graphs
+ Milestones
+ Issues 0
+ Merge Requests 1
+ Members
+ Labels
+ Wiki
+ Forks
+ Settings
+Profile
+volvet
+master
+
+webrtc   build_ios.sh
+ios build: support release/debug  deb85c77
+by volvet about 13 hours ago   Browse Files
+ build_ios.sh 4.72 KB RawBlameHistoryPermalink EditReplaceDelete
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
 #! /bin/sh
 
 
 # out directories
 IOS32_OUT_DIR="out_ios32"
 IOS64_OUT_DIR="out_ios64"
+
+BUILD_PATTERN="Release-iphoneos"
+#BUILD_PATTERN="Debug-iphoneos"
+
 
 # arches
 ARCH_ARM64=1
@@ -13,40 +207,49 @@ ARCH_X64=0
 
 # lipo 
 LIPO_PARAM=
+# libtool
+LIBTOOL_PARAM=
+
 
 #help
 me=$(basename $0)
 HELP_INFO="$me [arch/--allarch]\nExisting arches: armv7 arm64 i386 x86_64"
 
-WEBRTC_TARGET="libapprtc_common.a libapprtc_signaling.a librtc_sdk_common_objc.a \
-    librtc_base.a libwebrtc_common.a librtc_base_approved.a libjsoncpp.a \
-    libboringssl.a libfield_trial_default.a \
-    librtc_sdk_peerconnection_objc.a libjingle_peerconnection.a \
-    librtc_media.a libwebrtc.a libsystem_wrappers.a libvoice_engine.a \
+THIRD_PARTY_TARGET="libopus.a libg722.a libg711.a libpcm16b.a libilbc.a libyuv.a libvpx.a libsrtp.a \
+    libboringssl.a libprotobuf_lite.a libjsoncpp.a libexpat.a libusrsctplib.a"
+
+CORE_TARGET="libapprtc_common.a libapprtc_signaling.a librtc_sdk_common_objc.a \
+    librtc_base.a libwebrtc_common.a librtc_base_approved.a libfield_trial_default.a \
+    librtc_sdk_peerconnection_objc.a libwebrtc.a libsystem_wrappers.a libvoice_engine.a \
     libcommon_audio.a libcommon_audio_neon.a libaudio_coding_module.a \
-    libcng.a libaudio_encoder_interface.a libg711.a libpcm16b.a libilbc.a \
-    libwebrtc_opus.a libopus.a libg722.a libisac_fix.a libisac_common.a \
+    libcng.a libaudio_encoder_interface.a \
+    libwebrtc_opus.a libisac_fix.a libisac_common.a \
     libisac_neon.a libred.a librtc_event_log.a librtc_event_log_proto.a \
-    libprotobuf_lite.a libneteq.a libaudio_decoder_interface.a \
+    libneteq.a libaudio_decoder_interface.a \
     libbuiltin_audio_decoder_factory.a libaudio_decoder_factory_interface.a \
     librent_a_codec.a libaudio_conference_mixer.a libaudio_processing.a \
     libisac.a libaudioproc_debug_proto.a libaudio_processing_neon.a \
     libwebrtc_utility.a libmedia_file.a libaudio_device.a \
     libbitrate_controller.a libpaced_sender.a librtp_rtcp.a \
     libremote_bitrate_estimator.a libcongestion_controller.a \
-    libcommon_video.a libyuv.a libvideo_capture_module.a \
+    libcommon_video.a  libvideo_capture_module.a \
     libvideo_processing.a libvideo_processing_neon.a \
     libwebrtc_video_coding.a libwebrtc_h264.a \
     libwebrtc_h264_video_toolbox.a libwebrtc_i420.a \
-    libvideo_coding_utility.a libwebrtc_vp8.a libvpx.a libwebrtc_vp9.a \
-    libmetrics_default.a librtc_xmllite.a libexpat.a librtc_xmpp.a \
-    librtc_p2p.a libusrsctplib.a libvideo_capture_module_internal_impl.a \
-    librtc_pc.a libsrtp.a libsocketrocket.a"
+    libvideo_coding_utility.a libwebrtc_vp8.a  libwebrtc_vp9.a \
+    libmetrics_default.a librtc_xmllite.a librtc_xmpp.a \
+    librtc_p2p.a libvideo_capture_module_internal_impl.a \
+    librtc_pc.a libsocketrocket.a librtc_media.a libjingle_peerconnection.a"
+
+WEBRTC_TARGET="${THIRD_PARTY_TARGET} ${CORE_TARGET}"
+#WEBRTC_TARGET=AppRTCDemo
 
 function exec_libtool() {
   echo "Running libtool"
   libtool -static -v -o $@
 }
+
+
 
 
 if [ "$*" ]; then
@@ -72,32 +275,47 @@ fi
 
 ROOT_DIR=`pwd`
 
-
 cd ./src
 
 if [ $ARCH_ARMV7 = 1 ]; then
     echo "build ios armv7 library"
 
-    export GYP_DEFINES="OS=ios target_arch=arm"
+    rm -fr ./$IOS32_OUT_DIR/
+
+    LIBTOOL_PARAM=
+    for x in $CORE_TARGET
+        do
+            LIBTOOL_PARAM="${LIBTOOL_PARAM} ./${IOS32_OUT_DIR}/${BUILD_PATTERN}/${x}"
+        done
+    #echo $LIBTOOL_PARAM
+
+    export GYP_DEFINES="OS=ios target_arch=arm clang_xcode=1 ios_deployment_target=7.0"
     export GYP_GENERATOR_FLAGS="output_dir=${IOS32_OUT_DIR}"
 
     ./webrtc/build/gyp_webrtc.py
-    ninja -C ./$IOS32_OUT_DIR/Release-iphoneos -t clean
-    ninja -C ./$IOS32_OUT_DIR/Release-iphoneos $WEBRTC_TARGET
+    ninja -C ./$IOS32_OUT_DIR/$BUILD_PATTERN $WEBRTC_TARGET
 
-    exec_libtool  "./${IOS32_OUT_DIR}/Release-iphoneos/libwebrtc_armv7.a" ./$IOS32_OUT_DIR/Release-iphoneos/*.a
+    exec_libtool  "./${IOS32_OUT_DIR}/${BUILD_PATTERN}/libwebrtc_armv7.a" $LIBTOOL_PARAM
 fi
 
 if [ $ARCH_ARM64 = 1 ]; then
     echo "build ios arm64 library"
-    export GYP_DEFINES="OS=ios target_arch=arm64"
+
+    LIBTOOL_PARAM=
+    for x in $CORE_TARGET
+        do
+            LIBTOOL_PARAM="${LIBTOOL_PARAM} ./${IOS64_OUT_DIR}/${BUILD_PATTERN}/${x}"
+        done
+    #echo $LIBTOOL_PARAM
+
+    rm -fr ./$IOS64_OUT_DIR
+    export GYP_DEFINES="OS=ios target_arch=arm64 clang_xcode=1 ios_deployment_target=7.0"
     export GYP_GENERATOR_FLAGS="output_dir=${IOS64_OUT_DIR}"
 
     ./webrtc/build/gyp_webrtc.py
-    ninja -C ./$IOS64_OUT_DIR/Release-iphoneos -t clean
-    ninja -C ./$IOS64_OUT_DIR/Release-iphoneos $WEBRTC_TARGET
+    ninja -C ./$IOS64_OUT_DIR/$BUILD_PATTERN $WEBRTC_TARGET
 
-    exec_libtool  "./${IOS64_OUT_DIR}/Release-iphoneos/libwebrtc_arm64.a" ./$IOS64_OUT_DIR/Release-iphoneos/*.a
+    exec_libtool  "./${IOS64_OUT_DIR}/${BUILD_PATTERN}/libwebrtc_arm64.a" $LIBTOOL_PARAM
 fi
 
 cd $ROOT_DIR
@@ -109,11 +327,24 @@ if [ ! -e ./out/ios ]; then mkdir ./out/ios; fi
 if [ ! -e ./out/ios/libs ]; then mkdir ./out/ios/libs; fi
 
 if [ $ARCH_ARMV7 = 1 ]; then
-    LIPO_PARAM="-arch armv7 ./src/$IOS32_OUT_DIR/Release-iphoneos/libwebrtc_armv7.a"
+    LIPO_PARAM="-arch armv7 ./src/$IOS32_OUT_DIR/${BUILD_PATTERN}/libwebrtc_armv7.a"
 fi
 
 if [ $ARCH_ARM64 = 1 ]; then
-    LIPO_PARAM="${LIPO_PARAM} -arch arm64 ./src/$IOS64_OUT_DIR/Release-iphoneos/libwebrtc_arm64.a"
+    LIPO_PARAM="${LIPO_PARAM} -arch arm64 ./src/$IOS64_OUT_DIR/${BUILD_PATTERN}/libwebrtc_arm64.a"
 fi
 
 lipo -create $LIPO_PARAM  -output ./out/ios/libs/libwebrtc.a
+
+for x in $THIRD_PARTY_TARGET
+    do
+        LIPO_PARAM=
+        if [ $ARCH_ARMV7 = 1 ]; then
+            LIPO_PARAM="${LIPO_PARAM} -arch armv7 ./src/$IOS32_OUT_DIR/${BUILD_PATTERN}/${x}"
+        fi
+
+        if [ $ARCH_ARM64 = 1 ]; then
+            LIPO_PARAM="${LIPO_PARAM} -arch arm64 ./src/$IOS64_OUT_DIR/${BUILD_PATTERN}/${x}"
+        fi
+        lipo -create $LIPO_PARAM -output "./out/ios/libs/${x}"
+    done
