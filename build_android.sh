@@ -50,7 +50,7 @@ source ./build/android/envsetup.sh
 if [ $ARCH_ARMV7 = 1 ]; then
   echo "build android armv7 library"
   export GYP_GENERATOR_FLAGS="output_dir=${ARMV7_OUT_DIR}"
-  export GYP_DEFINIES="OS=android host_os=linux"
+  export GYP_DEFINES="OS=android host_os=linux"
   export GYP_GENERATORS="ninja"
   gclient runhooks
   #ninja -C $ARMV7_OUT_DIR/Release/ -t clean
